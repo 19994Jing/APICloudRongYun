@@ -1,0 +1,688 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <title>聊天子页面</title>
+    <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/style.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui-flex.css"/>
+</head>
+<style>
+    html, body {
+        background: #f0f0f0;
+    }
+
+    /*历史消息时间提示样式*/
+    .history-date {
+        color: #999999;
+        font-size: 12px;
+    }
+</style>
+<body>
+
+<!--//发送语音提示框-->
+<div class="aui-toast" style="display:none" id="loading">
+    <div class="aui-toast-loading"></div>
+    <div class="aui-toast-content"></div>
+</div>
+<!--聊天页面-->
+<div class="aui-content">
+    <div id="message-content" style="margin-top: 10px;">
+    </div>
+</div>
+<!--循环模板信息-->
+<script id="message-content-template" type="text/x-dot-template">
+    {{for(var i=0;i
+    <it.length ;i++){}}
+               {{? it[i].tag==='TxtMsg'}}
+    <div class="{{=it[i].firstSendType}}" style="margin-top: 5px">
+        {{? it[i].messageDirection=== 'SEND'}}
+        <div class="aui-text-center history-date">
+            {{? it[i].sentTime.length > 0}}
+            <span style="background: #999999;border-radius: 3px;color: #ffffff;margin: 10px;padding: 5px;">
+            {{=it[i].sentTime}}
+            </span>
+            {{?}}
+        </div>
+        <div class="{{=it[i].secondSendType}}"><img class="lazy" src="{{=it[i].sendIcon}}"></div>
+        {{?? it[i].messageDirection=== 'RECEIVE'}}
+        <div class="aui-text-center history-date">
+            {{? it[i].receivedTime.length > 0}}
+            <span style="background: #999999;border-radius: 3px;color: #ffffff;margin: 10px;padding: 5px;">
+            {{=it[i].receivedTime}}
+            </span>
+            {{?}}
+        </div>
+        <div class="{{=it[i].secondSendType}}"><img class="lazy" onclick="openPersonPage('{{=it[i].targetId}}')"
+                                                    src="{{=it[i].receiveIcon}}"></div>
+        {{?}}
+        <div class="{{=it[i].thirdSendType}}">
+            <div class="{{=it[i].fourthSendType}}"></div>
+            <span id="txt">{{=it[i].content.text}}</span>
+        </div>
+    </div>
+    {{?}}
+    {{? it[i].tag === 'ImgMsg'}}
+    <div class="{{=it[i].firstSendType}}" style="margin-top: 20px">
+        {{? it[i].messageDirection=== 'SEND'}}
+        <div class="aui-text-center history-date">
+            {{? it[i].sentTime.length > 0}}
+             <span style="background: #999999;border-radius: 3px;color: #ffffff;margin: 10px;padding: 5px;">
+            {{=it[i].sentTime}}
+            </span>
+            {{?}}
+        </div>
+        <div class="{{=it[i].secondSendType}}"><img class="lazy" src="{{=it[i].sendIcon}}"></div>
+        {{?? it[i].messageDirection=== 'RECEIVE'}}
+        <div class="aui-text-center history-date">
+            {{? it[i].receivedTime.length > 0}}
+            <span style="background: #999999;border-radius: 3px;color: #ffffff;margin: 10px;padding: 5px;">
+            {{=it[i].receivedTime}}
+            </span>
+            {{?}}
+        </div>
+        <div class="{{=it[i].secondSendType}}"><img class="lazy" src="{{=it[i].receiveIcon}}"></div>
+        {{?}}
+        <div class="{{=it[i].thirdSendType}}" onclick="clickShowBigPic('{{=it[i].content.imageUrl}}')">
+            <div class="{{=it[i].fourthSendType}}"></div>
+            <div style="background:url('{{=it[i].content.imageUrl}}');background-repeat: no-repeat;background-size: cover;margin: -3px;border-radius: 5px;">
+                <img src="{{=it[i].content.imageUrl}}"
+                     style="width: auto;max-width: 80%;min-width: 40%;height: auto;opacity: 0;">
+            </div>
+        </div>
+    </div>
+    {{?}}
+    {{? it[i].tag === 'VcMsg'}}
+    <div class="{{=it[i].firstSendType}}" style="margin-top: 20px">
+        {{? it[i].messageDirection=== 'SEND'}}
+        <div class="aui-text-center history-date">
+            {{? it[i].sentTime.length > 0}}
+             <span style="background: #999999;border-radius: 3px;color: #ffffff;margin: 10px;padding: 5px;">
+            {{=it[i].sentTime}}
+            </span>
+            {{?}}
+        </div>
+        <div class="{{=it[i].secondSendType}}"><img class="lazy" src="{{=it[i].sendIcon}}"></div>
+        {{?? it[i].messageDirection=== 'RECEIVE'}}
+        <div class="aui-text-center history-date">
+            {{? it[i].receivedTime.length > 0}}
+            <span style="background: #999999;border-radius: 3px;color: #ffffff;margin: 10px;padding: 5px;">
+            {{=it[i].receivedTime}}
+            </span>
+            {{?}}
+        </div>
+        <div class="{{=it[i].secondSendType}}"><img class="lazy" src="{{=it[i].receiveIcon}}"></div>
+        {{?}}
+        <div class="{{=it[i].thirdSendType}}">
+            <div class="{{=it[i].fourthSendType}}"></div>
+
+            <div class="aui-chat-status"><i id="voice-length{{=it[i].messageId}}"
+                                            class="">{{=it[i].content.duration}}"</i>
+            </div>
+            {{? it[i].content.duration <= '15'}}
+                    <span style="width: {{=it[i].content.duration * 15}}px;height: 30px; border-radius: 5px; background: green"
+                          onclick="playVoice('{{=it[i].messageId}}', '{{=it[i]}}')"></span>
+            {{??}}
+                     <span style="width: 170px;height: 30px; border-radius: 5px; background: green"
+                           onclick="playVoice('{{=it[i].messageId}}', '{{=it[i].content}}')"></span>
+            {{?}}
+        </div>
+    </div>
+    {{?}}
+    {{}}}
+</script>
+
+<!--单条文字聊天信息-->
+<script id="text-message-content-template" type="text/x-dot-template">
+    <div class="{{=it.firstSendType}}" style="margin-top: 5px">
+        {{? it.messageDirection=== 'SEND'}}
+        <div class="aui-text-center history-date">
+            {{? it.sentTime.length > 0}}
+            <span style="background: #999999;border-radius: 3px;color: #ffffff;margin: 10px;padding: 5px;">
+            {{=it.sentTime}}
+            </span>
+            {{?}}
+        </div>
+        <div class="{{=it.secondSendType}}"><img class="lazy" src="{{=it.sendIcon}}"></div>
+        {{?? it.messageDirection=== 'RECEIVE'}}
+        <div class="aui-text-center history-date">
+            {{? it.receivedTime.length > 0}}
+            <span style="background: #999999;border-radius: 3px;color: #ffffff;margin: 10px;padding: 5px;">
+            {{=it.receivedTime}}
+            </span>
+            {{?}}
+        </div>
+        <div class="{{=it.secondSendType}}"><img class="lazy" onclick="openPersonPage('{{=it.targetId}}')"
+                                                 src="{{=it.receiveIcon}}"></div>
+        {{?}}
+        <div class="{{=it.thirdSendType}}">
+            <div class="{{=it.fourthSendType}}"></div>
+            <span>{{=it.content.text}}</span>
+        </div>
+    </div>
+</script>
+
+<!--单条图片信息-->
+<script id="img-message-content-template" type="text/x-dot-template">
+    <div class="{{=it.firstSendType}}" style="margin-top: 20px">
+        {{? it.messageDirection=== 'SEND'}}
+        <div class="aui-text-center history-date">
+            {{? it.sentTime.length > 0}}
+             <span style="background: #999999;border-radius: 3px;color: #ffffff;margin: 10px;padding: 5px;">
+            {{=it.sentTime}}
+            </span>
+            {{?}}
+        </div>
+        <div class="{{=it.secondSendType}}"><img class="lazy" src="{{=it.sendIcon}}"></div>
+        {{?? it.messageDirection=== 'RECEIVE'}}
+        <div class="aui-text-center history-date">
+            {{? it.receivedTime.length > 0}}
+            <span style="background: #999999;border-radius: 3px;color: #ffffff;margin: 10px;padding: 5px;">
+            {{=it.receivedTime}}
+            </span>
+            {{?}}
+        </div>
+        <div class="{{=it.secondSendType}}"><img class="lazy" src="{{=it.receiveIcon}}"></div>
+        {{?}}
+        <div class="{{=it.thirdSendType}}" onclick="clickShowBigPic('{{=it.content.imageUrl}}')">
+            <div class="{{=it.fourthSendType}}"></div>
+            <div style="background:url('{{=it.content.imageUrl}}');background-repeat: no-repeat;background-size: cover;margin: -3px;border-radius: 5px;">
+                <img src="{{=it.content.imageUrl}}"
+                     style="width: auto;max-width: 80%;min-width: 40%;height: auto;opacity: 0;">
+            </div>
+        </div>
+    </div>
+</script>
+<!--下方标识 布局存在bug by TerryQi-->
+<!--<div style="padding-top: 10px;padding-bottom: 10px;" class="aui-flex-col aui-flex-center aui-flex-middle">-->
+<!--<img src="../image/logo_r.png" style="width: 18px;height: 18px;">-->
+<!--<span style="margin-left: 10px;font-size: 10px;color: #999999;">让世界享受艺术生活</span>-->
+<!--</div>-->
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script src="../script/doT.min.js"></script>
+<script src="../script/appTool.js"></script>
+<script src="../script/dateTool.js"></script>
+<script src="../script/jquery.min.js"></script>
+<script src="../script/jquery.lazyload.min.js"></script>
+<script type="text/javascript">
+    //定义聊天消息数组 用于存放聊天数据
+    var sourcePath = "widget://image/emotion";//表情存放目录
+    var emotionData;//存储表情
+
+    //表情符转换为表情
+    function transText(text, imgWidth, imgHeight) {
+        //表情大小定义为18*18
+        var imgWidth = 18;
+        var imgHeight = 18;
+        var regx = /\[(.*?)\]/gm;
+        var textTransed = text.replace(regx, function (match) {
+            var imgSrc = emotionData[match];
+            if (!imgSrc) { /* 说明不对应任何表情,直接返回即可.*/
+                return match;
+            }
+            var img = "<img src='" + imgSrc + "' width='" + imgWidth + "' height ='" + imgHeight + "' />";
+            return img;
+        });
+        return textTransed;
+    }
+
+    /*获取所有表情图片的名称和真实URL地址，以JSON对象形式返回。其中以表情文本为 属性名，以图片真实路径为属性值*/
+    function getImgsPaths(sourcePathOfChatBox, callback) {
+        var jsonPath = sourcePathOfChatBox + "/emotion.json";//表情的JSON数组
+        api.readFile({
+            path: jsonPath
+        }, function (ret, err) {
+            if (ret.status) {
+                var emotionArray = JSON.parse(ret.data);
+                var emotion = {};
+                for (var i in emotionArray) {
+                    var emotionItem = emotionArray[i];
+                    var emotionText = emotionItem["text"];
+                    var emotionUrl = "../image/emotion/" + emotionItem["name"] + ".png";
+                    emotion[emotionText] = emotionUrl;
+                }
+                /*把emotion对象 回调出去*/
+                if ("function" === typeof(callback)) {
+                    callback(emotion);
+                }
+            }
+        });
+    }
+
+    //相关信息
+    var isConnetced = true;
+    var timeTag = true;
+    var num = 0;
+    //聊天对象信息
+    var targetId;
+    //设置接收者和发送者的头像
+    var sender_icon;
+    var receiver_icon;
+    //时间间隔展示时间提示
+    var DATETIME_SHOW_DUR = 900000;
+    //入口函数
+    apiready = function () {
+//        alert(JSON.stringify(api.pageParam.chatMsg));
+        targetId = api.pageParam.chatMsg.user_code;
+        //时间戳判断 每隔DATETIME_SHOW_DUR分钟 再次接/收消息 会有时间戳
+        setInterval('addTimeTag()', DATETIME_SHOW_DUR);
+        //设置本人头像信息
+        sender_icon = getHeadIconA("", $api.getStorage("userInfo").my_icon);
+        receiver_icon = api.pageParam.chatMsg.my_icon;
+        //获取图片途径
+        getImgsPaths(sourcePath, function (emotion) {
+            emotionData = emotion;
+        });
+        //获取最近聊天信息
+        getRecentConverMsg();
+        //chat_win发送文字消息
+        api.addEventListener({
+            name: 'sendTextMessage'
+        }, function (ret, err) {
+            //获取发送消息信息
+            var msg = ret.value.msg;
+            sendText(msg.replaceAll('\n', '<br>'));  //将换行符\n替换成<br>
+        });
+
+        //接收信息
+        api.addEventListener({
+            name: 'rongMsg'
+        }, function (ret, err) {
+//            alert(JSON.stringify(ret));
+            var msg;
+            msg = ret.value;
+//            console.log(JSON.stringify(msg.msgNoti));
+            var tag;
+            var para;
+            if (msg.msgNoti.objectName == "RC:TxtMsg") {
+                tag = "TxtMsg";
+            } else if (msg.msgNoti.objectName == "RC:ImgMsg") {
+                tag = "ImgMsg";
+            } else if (msg.msgNoti.objectName == "RC:VcMsg") {
+                tag = "VcMsg";
+            } else if (msg.msgNoti.objectName == "RC:LBSMsg") {
+                tag = "LBSMsg";
+            }
+            para = {
+                firstSendType: "aui-chat-receiver",
+                secondSendType: "aui-chat-receiver-avatar",
+                thirdSendType: "aui-chat-receiver-cont",
+                fourthSendType: "aui-chat-left-triangle",
+                content: msg.msgNoti.content,
+                tag: tag,
+                receivedTime: getTrueTime(msg.msgNoti.receivedTime),
+                messageDirection: "RECEIVE",
+                receiveIcon: receiver_icon
+            };
+            if (!timeTag) {
+                para.receivedTime = "";
+            }
+            //与他聊天
+            if (targetId == msg.msgNoti.targetId) {
+                //通过doT进行设置
+                //如果是文字
+                if (tag == "TxtMsg") {
+                    var interText = doT.template($("#text-message-content-template").text());
+                    $("#message-content").append(interText(para));
+                }
+                if (tag == "ImgMsg") {
+                    var interText = doT.template($("#img-message-content-template").text());
+                    $("#message-content").append(interText(para));
+                }
+                goBottom();
+                timeTag = false;
+            }
+        });
+
+        //监听GoBottom
+        api.addEventListener({
+            name: 'chatFrm_goBottom'
+        }, function (ret, err) {
+            goBottom();
+        });
+    }
+
+    //发送消息
+    function sendText(msg_txt) {
+//        alert("msg_txt:" + msg_txt + "  targetId:" + targetId);
+        //如果msg_txt为空则不进行后续业务逻辑处理
+        if (msg_txt == undefined || msg_txt == null) {
+            return;
+        }
+        if (isConnetced) {
+            var para;
+            var rong = api.require('rongCloud2');
+
+
+            for (var i = 1200; i < 1350; i++) {
+                rong.sendTextMessage({
+                    conversationType: 'PRIVATE',
+                    targetId: i,
+                    text: transText(msg_txt, 15, 15),
+                    extra: ''
+                }, function (ret, err) {
+                        //alert(JSON.stringify(ret))
+                    console.log(i);
+                     });
+            }
+
+
+            rong.sendTextMessage({
+                        conversationType: 'PRIVATE',
+                        targetId: targetId,
+                        text: transText(msg_txt, 15, 15),
+                        extra: ''
+                    }, function (ret, err) {
+//                        alert(JSON.stringify(ret));
+//                        alert(JSON.stringify(err));
+                        if (ret.status == 'prepare') {
+                            var tag;
+                            if (ret.result.message.objectName == "RC:TxtMsg") {
+                                tag = "TxtMsg";
+                            } else if (ret.result.message.objectName == "RC:ImgMsg") {
+                                tag = "ImgMsg";
+                            } else if (ret.result.message.objectName == "RC:VcMsg") {
+                                tag = "VcMsg";
+                            } else if (ret.result.message.objectName == "RC:LBSMsg") {
+                                tag = "LBSMsg";
+                            }
+                            para = {
+                                firstSendType: "aui-chat-sender",
+                                secondSendType: "aui-chat-sender-avatar",
+                                thirdSendType: "aui-chat-sender-cont",
+                                fourthSendType: "aui-chat-right-triangle",
+                                content: ret.result.message.content,
+                                tag: tag,
+                                //时间戳
+                                sentTime: getTrueTime(ret.result.message.sentTime),
+                                //发送类型
+                                messageDirection: "SEND",
+                                sendIcon: sender_icon,
+                                targetId: targetId
+                            };
+                            if (!timeTag) {
+                                para.sentTime = "";
+                            }
+                            //展示参数
+//                            alert(JSON.stringify(para));
+                        }
+                        else if (ret.status == 'success') {
+                            var interText = doT.template($("#text-message-content-template").text());
+                            $("#message-content").append(interText(para));
+                            goBottom();
+                            //时间戳判断为false 不再发送
+                            timeTag = false;
+                        }
+                        else if (ret.status == 'error') {
+                            api.toast({msg: err.code});
+                            api.toast({msg: "网络开小差了，请换个网络再试试。"});
+                        }
+                    }
+            );
+        }
+        else {
+            api.alert({
+                msg: "未连接到服务器"
+            });
+        }
+    }
+
+    //点击图片方法
+    function clickShowBigPic(p) {
+        //展示图片
+        var photoBrowser = api.require('photoBrowser');
+        photoBrowser.open({
+            images: [
+                p,
+            ],
+            activeIndex: 0,
+            placeholderImg: 'widget://res/img/apicloud.png',
+            bgColor: '#000'
+        }, function (ret) {
+//            alert(JSON.stringify(ret));
+            if (ret.eventType == "click") {
+                photoBrowser.close();
+            } else if (ret.eventType == "longPress") {
+                //弹出actionSheet
+                api.actionSheet({
+                    title: '保存图片?',
+                    cancelTitle: '取   消',
+                    buttons: ['确   定'],
+                }, function (ret, err) {
+                    var index = ret.buttonIndex;
+//            alert("index:" + index);
+                    switch (index) {
+                        case 1:
+                            api.imageCache({
+                                url: p,
+                            }, function (ret, err) {
+                                if (ret) {
+                                    api.saveMediaToAlbum({
+                                        path: ret.url
+                                    });
+                                } else {
+                                    alert(JSON.stringify(err));
+                                }
+                            });
+                            break;
+                    }
+                });
+            }
+        });
+    }
+
+    //发送图片
+    function sendPictures(index) {
+        var type = "";
+        if (index == "0") {
+            type = 'album';
+            getPicture(type);
+        } else if (index == "1") {
+            type = 'camera';
+            getPicture(type);
+        } else {
+            //功能暂未实现
+            api.toast({
+                msg: '下一版本尽请关注~',
+                duration: 2000,
+                location: 'bottom'
+            });
+        }
+        var UIChatBox = api.require('UIChatBox');
+        UIChatBox.closeKeyboard();
+    }
+
+    //获取图片
+    function getPicture(type) {
+        //获取图片
+        api.getPicture({
+            sourceType: type,
+            encodingType: 'jpg',
+            mediaValue: 'pic',
+            destinationType: 'url',
+            allowEdit: false,
+            quality: 80,
+//            targetWidth: 100,
+//            targetHeight: 100,
+            saveToPhotoAlbum: false
+        }, function (ret, err) {
+            if (ret) {
+                var para;
+                var rong = api.require('rongCloud2');
+                rong.sendImageMessage({
+                            conversationType: 'PRIVATE',
+                            targetId: targetId,
+                            imagePath: ret.data,
+                            extra: ''
+                        }, function (ret, err) {
+//                            alert(JSON.stringify((ret)));
+                            if (ret.status == 'prepare') {
+                                var tag;
+                                if (ret.result.message.objectName == "RC:TxtMsg") {
+                                    tag = "TxtMsg";
+                                } else if (ret.result.message.objectName == "RC:ImgMsg") {
+                                    tag = "ImgMsg";
+                                } else if (ret.result.message.objectName == "RC:VcMsg") {
+                                    tag = "VcMsg";
+                                } else if (ret.result.message.objectName == "RC:LBSMsg") {
+                                    tag = "LBSMsg";
+                                }
+                                //相关参数
+                                para = {
+                                    firstSendType: "aui-chat-sender",
+                                    secondSendType: "aui-chat-sender-avatar",
+                                    thirdSendType: "aui-chat-sender-cont",
+                                    fourthSendType: "aui-chat-right-triangle",
+                                    content: ret.result.message.content,
+                                    tag: tag,
+                                    //时间戳
+                                    sentTime: getTrueTime(ret.result.message.sentTime),
+                                    //发送类型
+                                    messageDirection: "SEND",
+                                    progress: "",
+                                    sendIcon: sender_icon,
+                                    targetId: targetId
+                                };
+                                //判断时间
+                                if (!timeTag) {
+                                    para.sentTime = "";
+                                }
+                            }
+                            else if (ret.status == 'progress') {
+//                                alert(JSON.stringify(ret));
+                                api.showProgress({
+                                    style: 'default',
+                                    animationType: 'fade',
+                                    title: '努力发送中...',
+                                    text: ret.result.progress,
+                                    modal: false
+                                });
+                                if (ret.result.progress == "100") {
+                                    api.hideProgress();
+                                }
+                            }
+                            else if (ret.status == 'success') {
+                                //时间戳判断为false 不再发送
+                                timeTag = false;
+                                //通过doT.js进行页面设置
+                                var interText = doT.template($("#img-message-content-template").text());
+                                $("#message-content").append(interText(para));
+                                goBottom();
+                            }
+                            else if (ret.status == 'error') {
+                                api.toast({msg: "请检查当前网络状态"});
+                            }
+                        }
+                );
+            } else {
+//                alert(JSON.stringify(err));
+            }
+        });
+    }
+    //发送语音消息
+    function sendVoiceMsg(para) {
+
+    }
+
+    //播放发送的语音
+    function playVoice(msgId, content) {
+
+    }
+
+
+    //时间戳函数
+    function addTimeTag() {
+//        alert("添加时间戳");
+        timeTag = true;
+    }
+
+    //获取最近聊天信息
+    var time;
+    function getRecentConverMsg() {
+        //加载提示框
+        api.showProgress();
+//        alert(num);
+        var rong = api.require('rongCloud2');
+        //先获取之前的聊天记录
+        rong.getHistoryMessages({
+            conversationType: 'PRIVATE',
+            targetId: targetId,
+            oldestMessageId: -1,
+            count: 500
+        }, function (ret, err) {
+//            alert(JSON.stringify(ret));
+            if (ret.status == "success") {
+                //判断ret是否为空，是否有聊天信息
+                if (ret.result != "" && ret.result != null) {
+                    var arr = [];
+                    arr = ret.result;
+                    //记录最早的时间戳
+                    if (arr.length > 0) {
+                        time = arr[arr.length - 1].receivedTime;
+                    }
+                    //进行数据整理，进行聊天记录展现
+                    for (var i = 0; i < arr.length; i++) {
+                        //判断是接收消息还是发送消息
+                        if (arr[i].messageDirection == "SEND") {
+                            arr[i].firstSendType = "aui-chat-sender";
+                            arr[i].secondSendType = "aui-chat-sender-avatar";
+                            arr[i].thirdSendType = "aui-chat-sender-cont";
+                            arr[i].fourthSendType = "aui-chat-right-triangle";
+                            arr[i].sendIcon = sender_icon;
+                        } else {
+                            arr[i].firstSendType = "aui-chat-receiver";
+                            arr[i].secondSendType = "aui-chat-receiver-avatar";
+                            arr[i].thirdSendType = "aui-chat-receiver-cont";
+                            arr[i].fourthSendType = "aui-chat-left-triangle";
+                            arr[i].receiveIcon = receiver_icon;
+                        }
+                        //设置tag标识
+                        if (arr[i].objectName == "RC:TxtMsg") {
+                            arr[i].tag = "TxtMsg";
+                        } else if (arr[i].objectName == "RC:ImgMsg") {
+                            arr[i].tag = "ImgMsg";
+                        } else if (arr[i].objectName == "RC:VcMsg") {
+                            arr[i].tag = "VcMsg";
+                        } else if (arr[i].objectName == "RC:LBSMsg") {
+
+                        }
+                        //如果时间间隔大于十五分钟 加上时间戳
+                        if (arr[i].receivedTime - time >= DATETIME_SHOW_DUR || i == arr.length - 1) {
+                            time = arr[i].receivedTime;
+                            arr[i].receivedTime = getTrueTime(arr[i].receivedTime);
+//                    alert("receivedTime:" + arr[i].receivedTime);
+                            arr[i].sentTime = getTrueTime(arr[i].sentTime);
+//                    alert("sentTime:" + arr[i].sentTime);
+                        } else {
+                            arr[i].receivedTime = "";
+                            arr[i].sentTime = "";
+                        }
+                    }
+                    //通过doT.js进行页面设置
+                    var interText = doT.template($("#message-content-template").text())
+                    $("#message-content").append(interText(arr.reverse()));
+                    goBottom();
+                }
+            }
+            //关闭加载框
+            api.hideProgress();
+        });
+    }
+
+    //打开用户个人主页
+    function openPersonPage(code) {
+        showPersonIndex(code);
+    }
+
+    //页面滚动到底部
+    function goBottom() {
+//        alert("goBottom();");
+        document.getElementsByTagName('body')[0].scrollTop = document.getElementsByTagName('body')[0].scrollHeight;
+    }
+
+</script>
+</html>
